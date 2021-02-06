@@ -2,6 +2,8 @@
 
 import unittest
 from time import sleep
+from io import BytesIO
+from gzip import GzipFile
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread
 import requests
@@ -25,11 +27,19 @@ class MockupRequestHandler(BaseHTTPRequestHandler):
 		"""Handles the client's GET request."""
 
 		self.send_response(200)
-		self.send_header("Content-type", "text/html; charset=utf-8")
+		self.send_header("Content-Type", "text/html; charset=utf-8")
+		# Test that middle server can handle a gzip compressed response.
+		self.send_header("Content-Encoding", "gzip")
 		self.end_headers()
-		# The path part of the client's requested URL is sent back so it can be
-		# verified that the mockup server received it.
-		self.wfile.write(self.path.encode("utf-8"))
+
+		bytesIO = BytesIO()
+		with GzipFile(fileobj=bytesIO, mode='w', compresslevel=5) as p:
+			# The path part of the client's requested URL is sent back so it can be
+			# verified that the mockup server received it.
+			p.write(self.path.encode("utf-8"))
+
+		self.wfile.write(bytesIO.getvalue())
+		self.wfile.flush()
 
 
 

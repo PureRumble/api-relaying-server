@@ -1,5 +1,7 @@
 #!/usr/bin/python3.9
 
+import io
+import gzip
 from http.server import BaseHTTPRequestHandler
 import requests
 
@@ -43,11 +45,21 @@ class ApiRelayingRequestHandler(BaseHTTPRequestHandler):
 			self.send_response(response.status_code)
 
 			for key in response.headers:
-				self.send_header(key, response.headers[key])
+				# Response to client won't be compressed even if the remote server's
+				# response to this middle server was compressed (the Python library
+				# Requests being used automatically decompresses responses).
+				if key.lower() == "content-encoding":
+					self.send_header("Content-Encoding", "identity")
+				else:
+					self.send_header(key, response.headers[key])
 
 			self.end_headers()
 
+			# response.content is already decompressed.
+			# TODO: Consider compressing large responses with gzip by using library
+			# tools io.BytesIO() and gzip.GzipFile().
 			self.wfile.write(response.content)
+			self.wfile.flush()
 
 		except:
 			# This middle server is acting as a gateway so state that a
