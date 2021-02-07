@@ -25,9 +25,20 @@ arg_parser.add_argument(
 	help="The port nr that the server should listen on. Default value is 8000."
 )
 
-port = arg_parser.parse_args().port
+arg_parser.add_argument(
+	"--interface",
+	action="store",
+	type=str,
+	default="localhost",
+	help="""The interface that the server should listen on. Value must be a
+		valid IP address. Default value is localhost."""
+)
 
-relay_server = HTTPServer(("localhost", port), ApiRelayingRequestHandler)
+parsed_args = arg_parser.parse_args()
+port = parsed_args.port
+interface = parsed_args.interface
+
+relay_server = HTTPServer((interface, port), ApiRelayingRequestHandler)
 
 print("Starting server. Stop with Ctrl+C.")
 try:
