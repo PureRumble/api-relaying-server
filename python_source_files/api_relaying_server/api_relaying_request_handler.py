@@ -1,9 +1,10 @@
 #!/usr/bin/python3.9
 
-import io
-import gzip
 from http.server import BaseHTTPRequestHandler
 import requests
+from requests_cache import install_cache
+
+install_cache("api_relaying_server_cache", backend="sqlite", expire_after=300)
 
 class ApiRelayingRequestHandler(BaseHTTPRequestHandler):
 	"""
@@ -30,6 +31,9 @@ class ApiRelayingRequestHandler(BaseHTTPRequestHandler):
 
 	def do_GET(self):
 		try:
+			# A Requests Cache has been created above. Calls to requests.get()
+			# now automatically yield a cache lookup and fetch if the cache
+			# entry exists and hasn't expired.
 			response = \
 				requests.get(ApiRelayingRequestHandler.remote_server_url + self.path)
 
