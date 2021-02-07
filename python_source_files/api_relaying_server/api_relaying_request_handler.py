@@ -1,9 +1,10 @@
 #!/usr/bin/python3.9
 
-import io
-import gzip
 from http.server import BaseHTTPRequestHandler
 import requests
+from requests_cache import install_cache
+
+install_cache("api_relaying_server_cache", backend="sqlite", expire_after=300)
 
 class ApiRelayingRequestHandler(BaseHTTPRequestHandler):
 	"""
@@ -18,18 +19,28 @@ class ApiRelayingRequestHandler(BaseHTTPRequestHandler):
 
 	Static variables
 	----------------
-
 	remote_server_url : str
 		An URL to the remote server. Change it to the desired remote server
 		before using this class to create a server. The variable is not an
 		instance variable since instances of this class are created internally
 		by http.server.HTTPServer() in the Python library.
+
+	Instance methods
+	----------------
+	do_GET()
+		Relays an incoming HTTP GET request to the remote server and sends back
+		the response to the client.
 	"""
 
 	remote_server_url = "https://menu.dckube.scilifelab.se/api"
 
 	def do_GET(self):
+		"""Relays an incoming HTTP GET request to the remote server and sends back
+		the response to the client."""
 		try:
+			# A Requests Cache has been created above. Calls to requests.get()
+			# now automatically yield a cache lookup and fetch if the cache
+			# entry exists and hasn't expired.
 			response = \
 				requests.get(ApiRelayingRequestHandler.remote_server_url + self.path)
 
