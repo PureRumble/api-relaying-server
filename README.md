@@ -107,4 +107,11 @@ Connect to the server by visiting http://[container_ip_addr]:8000  in a browser.
 
 # Task 4 - Caching HTTP responses
 
-The api relaying server caches HTTP responses from the remote server.
+The api relaying server caches HTTP responses from the remote server. This is
+verified by unit tests.
+
+
+# Task 5 - Making relaying server multi-threaded
+
+The API relaying server handles each request in separate thread. This is
+verified by unit tests.

@@ -7,8 +7,7 @@ from requests_cache import install_cache
 install_cache("api_relaying_server_cache", backend="sqlite", expire_after=300)
 
 class ApiRelayingRequestHandler(BaseHTTPRequestHandler):
-	"""
-	A class used to create an api relaying middle server.
+	"""A class used to create an api relaying middle server.
 	This class specifies how the middle server should handle incoming requests.
 
 	When a client request comes in, the server sends its own request

@@ -5,23 +5,12 @@ from time import sleep
 from io import BytesIO
 from gzip import GzipFile
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 from threading import Thread
 import requests_cache
 import requests
 from api_relaying_server import ApiRelayingRequestHandler
-
-
-
-def setUpModule():
-	# Start the relaying server and the mockup remote server for tests
-	start_server_thread(8000, ApiRelayingRequestHandler)
-	start_server_thread(8001, MockupRequestHandler)
-	ApiRelayingRequestHandler.remote_server_url = "http://localhost:8001"
-
-	# Make sure servers have finished starting up before running tests.
-	sleep(1)
-
-
+from api_relaying_server import ThreadedHTTPServer
 
 def start_server_thread(port_nr, req_handler_cls):
 	"""Starts a thread that runs a server using the provided request handler
@@ -40,9 +29,10 @@ def start_server_thread(port_nr, req_handler_cls):
 	(server, thread)
 		The created server and thread
 	"""
-	server = HTTPServer(("localhost", port_nr), req_handler_cls)
+	server = ThreadedHTTPServer(("localhost", port_nr), req_handler_cls)
+	# Threads spawned by server should stop when parent process stops.
+	server.daemon_threads = True
 	thread = Thread(target=server.serve_forever)
-	# The created thread should be stopped when the parent thread stops.
 	thread.daemon = True
 	thread.start()
 
@@ -84,10 +74,19 @@ class MockupRequestHandler(BaseHTTPRequestHandler):
 
 
 
+def setUpModule():
+	# Start the relaying server and the mockup remote server for tests
+	start_server_thread(8000, ApiRelayingRequestHandler)
+	start_server_thread(8001, MockupRequestHandler)
+	ApiRelayingRequestHandler.remote_server_url = "http://localhost:8001"
+
+	# Make sure servers have finished starting up before running tests.
+	sleep(1)
+
+
+
 class TestApiRelayingServer(unittest.TestCase):
-	"""
-	A class used to test the module api_relaying_server.
-	"""
+	"""A class used to test the module api_relaying_server."""
 
 	def test_receive_resp_from_relaying_server(req):
 		"""Tests that the server can relay the request and response
@@ -179,6 +178,44 @@ class TestApiRelayingServer(unittest.TestCase):
 		requests_cache.clear()
 
 		req.assertEqual(nr_cache_misses, 2)
+
+
+	def test_each_request_processed_by_separate_thread(req):
+		"""Tests that each request of the relaying server is processed by a
+		separate thread."""
+
+		# This is a locally defined func. Make the remote mockup server to count
+		# each incoming request then sleep for 2 seconds.
+		nr_requests = 0
+		def handle_request(req):
+			nonlocal nr_requests
+			nr_requests += 1
+			sleep(2)
+
+			req.send_response(200)
+			req.send_header("Content-Type", "text/html; charset=utf-8")
+			req.send_header("Content-Encoding", "identity")
+			req.end_headers()
+
+			req.wfile.write("Nothing to see here!".encode("utf-8"))
+			req.wfile.flush()
+
+		MockupRequestHandler.handle_request = staticmethod(handle_request)
+
+		# Send three reqs in parallel and don't wait for the responses.
+		# Only wait one sec and then count nr reqs the mockup server
+		# got. Mockup server waits two secs for each req. If the relaying server had
+		# been single threaded then the count wouldn't be at three after one sec
+		# since the relaying server would had waited for remote server to process
+		# first req.
+		Thread(target=requests.get, args=("http://localhost:8000/yoda",)).start()
+		Thread(target=requests.get, args=("http://localhost:8000/obi",)).start()
+		Thread(target=requests.get, args=("http://localhost:8000/mace",)).start()
+		sleep(1)
+
+		requests_cache.clear()
+
+		req.assertEqual(nr_requests, 3)
 
 
 
