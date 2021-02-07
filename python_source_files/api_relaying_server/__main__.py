@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from http.server import HTTPServer
 from .api_relaying_request_handler import ApiRelayingRequestHandler
+from .threaded_http_server import ThreadedHTTPServer
 
 arg_parser = ArgumentParser(
 	description="""
@@ -38,7 +39,9 @@ parsed_args = arg_parser.parse_args()
 port = parsed_args.port
 interface = parsed_args.interface
 
-relay_server = HTTPServer((interface, port), ApiRelayingRequestHandler)
+relay_server = ThreadedHTTPServer((interface, port), ApiRelayingRequestHandler)
+# Threads spawned by server should stop when parent process stops.
+relay_server.daemon_threads = True
 
 print("Starting server. Stop with Ctrl+C.")
 try:
