@@ -68,10 +68,6 @@ cd python_source_files
 python -m unittest
 ```
 
-## Known issues
-A Broken Pipe Error may occur in the Python app when sending a request to
-http://localhost:8000/restaurant. The error will not stop the server and it will continue to function.
-
 
 # Task 2 - Docker container
 
