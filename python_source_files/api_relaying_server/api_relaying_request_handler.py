@@ -36,6 +36,7 @@ class ApiRelayingRequestHandler(BaseHTTPRequestHandler):
 	def do_GET(self):
 		"""Relays an incoming HTTP GET request to the remote server and sends back
 		the response to the client."""
+
 		try:
 			# A Requests Cache has been created above. Calls to requests.get()
 			# now automatically yield a cache lookup and fetch if the cache
@@ -52,26 +53,31 @@ class ApiRelayingRequestHandler(BaseHTTPRequestHandler):
 				# Type of error isn't important since it is immediately handled here.
 				raise ConnectionError()
 
-			self.send_response(response.status_code)
-
-			for key in response.headers:
-				# Response to client won't be compressed even if the remote server's
-				# response to this middle server was compressed (the Python library
-				# Requests being used automatically decompresses responses).
-				if key.lower() == "content-encoding":
-					self.send_header("Content-Encoding", "identity")
-				else:
-					self.send_header(key, response.headers[key])
-
-			self.end_headers()
-
-			# response.content is already decompressed.
-			# TODO: Consider compressing large responses with gzip by using library
-			# tools io.BytesIO() and gzip.GzipFile().
-			self.wfile.write(response.content)
-			self.wfile.flush()
-
 		except:
 			# This middle server is acting as a gateway so state that a
 			# Bad Gateway error occurred.
 			self.send_error(502, "Remote server didn't provide a proper response.")
+			return
+
+		self.send_response(response.status_code)
+
+		for key in response.headers:
+			# Response to client won't be compressed even if the remote server's
+			# response to this middle server was compressed (the Python library
+			# Requests being used automatically decompresses responses).
+			if key.lower() == "content-encoding":
+				self.send_header("Content-Encoding", "identity")
+			else:
+				self.send_header(key, response.headers[key])
+
+		self.end_headers()
+
+		# response.content is already decompressed.
+		# TODO: Consider compressing large responses with gzip by using library
+		# tools io.BytesIO() and gzip.GzipFile().
+		self.wfile.write(response.content)
+
+
+	# Silence the logging of the server
+	def log_message(self, format, *args):
+		pass
