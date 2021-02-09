@@ -61,20 +61,19 @@ class ApiRelayingRequestHandler(BaseHTTPRequestHandler):
 
 		self.send_response(response.status_code)
 
-		for key in response.headers:
-			# Response to client won't be compressed even if the remote server's
-			# response to this middle server was compressed (the Python library
-			# Requests being used automatically decompresses responses).
-			if key.lower() == "content-encoding":
-				self.send_header("Content-Encoding", "identity")
-			else:
-				self.send_header(key, response.headers[key])
+		# Send only necessary HTTP headers from remote server to client
+		http_headers = \
+			{header.lower() : value for header, value in response.headers.items()}
+
+		if "date" in http_headers:
+			self.send_header("Date", http_headers["date"])
+
+		if "content-type" in http_headers:
+			self.send_header("Content-Type", http_headers["content-type"])
 
 		self.end_headers()
 
-		# response.content is already decompressed.
-		# TODO: Consider compressing large responses with gzip by using library
-		# tools io.BytesIO() and gzip.GzipFile().
+		# Response.content is already decompressed.
 		self.wfile.write(response.content)
 
 

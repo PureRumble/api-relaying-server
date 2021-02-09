@@ -106,9 +106,40 @@ sudo docker container inspect [container_id] | grep -i '"ipaddress":'
 Connect to the server by visiting http://[container_ip_addr]:8000  in a browser.
 
 
+# Task 3 - Dish shell tool
+
+A shell tool is available for listing restaurants or the dishes of a selected
+one. The API relaying server must be running on localhost:8000 to use the shell
+tool.
+
+Start the relaying server in the background by running the following from the
+repository root:
+
+```
+cd python_source_files
+python -m api_relaying_server &
+```
+
+List all restaurants by running the following:
+
+```
+python dish_shell_tool/list_dishes.py
+```
+
+Note the identifier of desired restaurant and list its dishes by running the
+following:
+
+```
+python dish_shell_tool/list_dishes.py --restaurant [identifier]
+```
+
+The shell tool can also be used by running `./list_dishes.py` if no Python
+virtual environment is being used.
+
+
 # Task 4 - Caching HTTP responses
 
-The api relaying server caches HTTP responses from the remote server. This is
+The API relaying server caches HTTP responses from the remote server. This is
 verified by unit tests.
 
 
